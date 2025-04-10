@@ -24,7 +24,7 @@
     <nav>
       <ul>
         <li><a href="index.html">Trang chủ</a></li>
-        <li><a href="login.html">Đăng nhập</a></li>
+        <li id="login-nav"><a href="login.html">Đăng nhập</a></li>
         <li><a href="products.html">Sản phẩm</a></li>
         <li>
           <a href="cart.html">Giỏ hàng
@@ -89,48 +89,52 @@
       where,
       getDocs
     } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
-  
+
     const firebaseConfig = {
       apiKey: "AIzaSyC3zAz7lnoms99w8o1z74iQpXQvq7xakgc",
       authDomain: "web-development-d110c.firebaseapp.com",
       projectId: "web-development-d110c",
     };
-  
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-  
+
     const userInfoDiv = document.getElementById("user-info");
     const usernameSpan = document.getElementById("username");
     const logoutBtn = document.getElementById("logoutBtn");
     const cartCount = document.getElementById("cart-count");
-  
+    const loginNav = document.getElementById("login-nav");
+
     let currentUser = null;
-  
+
     const updateCartCount = async (userId) => {
       const q = query(collection(db, "cart"), where("userId", "==", userId));
       const snapshot = await getDocs(q);
       cartCount.textContent = `(${snapshot.size})`;
     };
-  
+
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
         usernameSpan.textContent = user.displayName || user.email;
         userInfoDiv.style.display = "flex";
+        if (loginNav) loginNav.style.display = "none";
         updateCartCount(user.uid);
       } else {
-        // Chưa đăng nhập → chuyển về trang login
-        window.location.href = "login.html";
+        currentUser = null;
+        userInfoDiv.style.display = "none";
+        cartCount.textContent = "(0)";
+        if (loginNav) loginNav.style.display = "inline-block";
       }
     });
-  
+
     logoutBtn.addEventListener("click", () => {
       signOut(auth).then(() => {
         window.location.href = "login.html";
       });
     });
-  
+
     // Thêm vào giỏ hàng
     document.querySelectorAll(".add-cart-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
@@ -142,19 +146,19 @@
         const name = btn.dataset.name;
         const price = parseInt(btn.dataset.price);
         const image = btn.dataset.image;
-  
+
         await addDoc(collection(db, "cart"), {
           userId: currentUser.uid,
           name,
           price,
           image
         });
-  
+
         alert("Đã thêm vào giỏ hàng!");
         updateCartCount(currentUser.uid);
       });
     });
-  
+
     // Đặt hàng
     document.querySelectorAll(".buy-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -166,6 +170,6 @@
         }
       });
     });
-  </script>  
+  </script>
 </body>
 </html>
