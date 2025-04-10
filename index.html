@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Online Store</title>
+  <link rel="stylesheet" href="assets/css/index.css">
+  <style>
+    .cart-count {
+      background-color: crimson;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 8px;
+      font-size: 12px;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo">QT Store</div>
+    <nav>
+      <ul>
+        <li><a href="index.html">Trang chủ</a></li>
+        <li><a href="login.html">Đăng nhập</a></li>
+        <li><a href="products.html">Sản phẩm</a></li>
+        <li>
+          <a href="cart.html">Giỏ hàng
+            <span id="cart-count" class="cart-count">(0)</span>
+          </a>
+        </li>
+        <li><a href="contact.html">Liên hệ</a></li>
+      </ul>
+    </nav>
+    <div class="user-info" id="user-info" style="display: none;">
+      Xin chào, <span id="username">Người dùng</span>!
+      <button id="logoutBtn">Đăng xuất</button>
+    </div>
+  </header>
+
+  <!-- Banner -->
+  <section class="banner">
+    <img src="images/bannerr.jpg" alt="Banner">
+  </section>
+
+  <!-- Sản phẩm -->
+  <section class="product-section">
+    <h2>Sản phẩm nổi bật</h2>
+    <div class="product-grid">
+      <div class="product-card">
+        <img src="images/ip16.jpg" alt="Sản phẩm 1">
+        <h3>iPhone 16 Promax</h3>
+        <p class="price">Giá: 35.000.000₫</p>
+        <button class="buy-btn">Đặt hàng</button>
+        <button class="add-cart-btn" data-name="iPhone 16 Promax" data-price="35000000" data-image="images/ip16.jpg">Thêm vào giỏ hàng</button>
+      </div>
+      <div class="product-card">
+        <img src="images/ss s24.jpg" alt="Sản phẩm 2">
+        <h3>SamSung Galaxy S24</h3>
+        <p class="price">Giá: 27.999.000₫</p>
+        <button class="buy-btn">Đặt hàng</button>
+        <button class="add-cart-btn" data-name="SamSung Galaxy S24" data-price="999000" data-image="images/ss s24.jpg">Thêm vào giỏ hàng</button>
+      </div>
+      <div class="product-card">
+        <img src="images/ip14.jpg" alt="Sản phẩm 3">
+        <h3>iPhone 14</h3>
+        <p class="price">Giá: 11.000.000₫</p>
+        <button class="buy-btn">Đặt hàng</button>
+        <button class="add-cart-btn" data-name="iPhone 14" data-price="555000" data-image="images/ip14.jpg">Thêm vào giỏ hàng</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Firebase script -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey : "AIzaSyC3zAz7lnoms99w8o1z74iQpXQvq7xakgc" , 
+      authDomain : "web-development-d110c.firebaseapp.com" , 
+      projectId : "web-development-d110c" ,  
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const userInfoDiv = document.getElementById("user-info");
+    const usernameSpan = document.getElementById("username");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const cartCount = document.getElementById("cart-count");
+
+    let currentUser = null;
+
+    const updateCartCount = async (userId) => {
+      const q = query(collection(db, "cart"), where("userId", "==", userId));
+      const snapshot = await getDocs(q);
+      cartCount.textContent = `(${snapshot.size})`;
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+        usernameSpan.textContent = user.displayName || user.email;
+        userInfoDiv.style.display = "flex";
+        updateCartCount(user.uid);
+      } else {
+        currentUser = null;
+        userInfoDiv.style.display = "none";
+        cartCount.textContent = "(0)";
+      }
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      signOut(auth).then(() => {
+        window.location.href = "index.html";
+      });
+    });
+
+    // Xử lý thêm vào giỏ hàng
+    document.querySelectorAll(".add-cart-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!currentUser) {
+          alert("Bạn chưa đăng nhập!");
+          window.location.href = "login.html";
+          return;
+        }
+        const name = btn.dataset.name;
+        const price = parseInt(btn.dataset.price);
+        const image = btn.dataset.image;
+
+        await addDoc(collection(db, "cart"), {
+          userId: currentUser.uid,
+          name,
+          price,
+          image
+        });
+
+        alert("Đã thêm vào giỏ hàng!");
+        updateCartCount(currentUser.uid);
+      });
+    });
+
+    // Xử lý đặt hàng
+    document.querySelectorAll(".buy-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (!currentUser) {
+          alert("Bạn chưa đăng nhập!");
+          window.location.href = "login.html";
+        } else {
+          alert("Cảm ơn bạn đã đặt hàng! Chúng tôi sẽ xử lý đơn hàng sớm nhất.");
+        }
+      });
+    });
+  </script>
+</body>
+</html>

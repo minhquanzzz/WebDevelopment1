@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giỏ hàng</title>
+  <link rel="stylesheet" href="assets/css/cart.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo">Online Store</div>
+    <nav>
+      <ul>
+        <li><a href="index.html">Trang chủ</a></li>
+        <li><a href="products.html">Sản phẩm</a></li>
+        <li><a href="cart.html">Giỏ hàng (<span id="cart-count">0</span>)</a></li>
+        <li><a href="contact.html">Liên hệ</a></li>
+      </ul>
+    </nav>
+    <div class="user-info" id="user-info" style="display: none;">
+      Xin chào, <span id="username">Người dùng</span>!
+      <button id="logoutBtn">Đăng xuất</button>
+    </div>
+  </header>
+
+  <!-- Giỏ hàng -->
+  <section class="cart-section">
+    <h2>Giỏ hàng của bạn</h2>
+    <div id="cart-items"></div>
+  </section>
+
+  <script type="module" src="assets/js/cart.js"></script>
+</body>
+</html>

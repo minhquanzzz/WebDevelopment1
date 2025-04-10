@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Store - Register</title>
+  <link rel="stylesheet" href="assets/css/common.css" />
+  <link rel="stylesheet" href="assets/css/index.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- Trang chủ có logo hoặc hình ảnh -->
+    <div class="hero">
+      <img src="images/ảnh login.png" alt="Store Image" class="hero-image" />
+      <h1>Welcome</h1>
+      <p>Join us to start shopping and enjoy your journey</p>
+    </div>
+
+    <!-- Màn hình đăng ký -->
+    <div class="login-box">
+      <h2>Register</h2>
+      <form id="register-form">
+        <input type="email" id="register-email" placeholder="Email" required />
+        <input type="password" id="register-password" placeholder="Password" required />
+        <button type="submit" id="register-btn">Register</button>
+        <p id="register-message"></p>
+      </form>
+      <p>Already have an account? <a href="index.html">Login here</a></p>
+    </div>
+  </div>
+
+  <script type="module" src="js/register.js"></script>
+</body>
+</html>

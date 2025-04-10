@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="assets/css/common.css" />
+  <link rel="stylesheet" href="assets/css/admin.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Admin</h2>
+    
+    <!-- Nút đăng xuất -->
+    <button id="logout-btn">Logout</button>
+
+    <!-- Quản lý người dùng -->
+    <div id="user-list">
+      <h3>Manage Users</h3>
+      <ul id="user-list-ul"></ul>
+    </div>
+
+    <!-- Thêm sản phẩm -->
+    <div id="add-product">
+      <h3>Add Product</h3>
+      <input type="text" id="product-name" placeholder="Product Name" />
+      <input type="text" id="product-price" placeholder="Product Price" />
+      <input type="file" id="product-image" accept="image/*" />
+      <button id="add-product-btn">Add Product</button>
+    </div>
+
+    <!-- Hiển thị danh sách sản phẩm -->
+    <div id="product-list">
+      <h3>Product List</h3>
+      <ul id="product-list-ul"></ul>
+    </div>
+  </div>
+
+  <!-- Modal chỉnh sửa sản phẩm -->
+  <div id="edit-modal" class="modal">
+    <div class="modal-content">
+      <h3>Edit Product</h3>
+      <input type="hidden" id="edit-id" />
+      <input type="text" id="edit-name" placeholder="Product Name" />
+      <input type="text" id="edit-price" placeholder="Product Price" />
+      <button id="save-edit">Save</button>
+      <button id="close-edit">Cancel</button>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/admin.js"></script>
+</body>
+</html>
