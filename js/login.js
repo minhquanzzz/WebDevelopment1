@@ -5,6 +5,11 @@ import {
   signInWithEmailAndPassword,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC3zAz7lnoms99w8o1z74iQpXQvq7xakgc",
@@ -17,16 +22,23 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 const loginForm = document.getElementById("login-form");
 const emailInput = document.getElementById("login-email");
 const passwordInput = document.getElementById("login-password");
 const message = document.getElementById("login-message");
 
-// Nếu đã đăng nhập → chuyển về index.html
-onAuthStateChanged(auth, (user) => {
+// Nếu đã đăng nhập → kiểm tra role và chuyển hướng
+onAuthStateChanged(auth, async (user) => {
   if (user) {
-    window.location.href = "index.html";
+    const docRef = doc(db, "users", user.uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists() && docSnap.data().role === "admin") {
+      window.location.href = "admin.html";
+    } else {
+      window.location.href = "index.html";
+    }
   }
 });
 
@@ -41,10 +53,17 @@ loginForm.addEventListener("submit", async (e) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    message.textContent = "Đăng nhập thành công! Đang chuyển hướng...";
-    setTimeout(() => {
+    message.textContent = "Đăng nhập thành công! Đang kiểm tra quyền...";
+
+    const docRef = doc(db, "users", user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists() && docSnap.data().role === "admin") {
+      window.location.href = "admin.html";
+    } else {
       window.location.href = "index.html";
-    }, 1000);
+    }
+
   } catch (error) {
     if (error.code === "auth/user-not-found") {
       message.textContent = "Tài khoản không tồn tại.";
