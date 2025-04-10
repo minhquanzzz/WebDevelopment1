@@ -4,33 +4,202 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Giỏ hàng</title>
-  <link rel="stylesheet" href="assets/css/cart.css">
+  <style>
+    /* Thêm phần CSS như bạn đã có ở trên — giữ nguyên nếu không cần thay đổi */
+  </style>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      updateDoc,
+      deleteDoc,
+      collection,
+      query,
+      where,
+      getDocs,
+      addDoc
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentUserId = null;
+    let cartItems = [];
+
+    const cartContainer = document.getElementById("cart-items");
+    const cartCounter = document.getElementById("cart-counter");
+    const cartTotal = document.getElementById("cart-total");
+
+    // Lấy giỏ hàng từ Firestore
+    async function loadCartFromFirestore() {
+      if (!currentUserId) return;
+      cartItems = [];
+      const q = query(collection(db, "cart"), where("userId", "==", currentUserId));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        cartItems.push({
+          id: docSnap.id,
+          ...data
+        });
+      });
+      updateCartDisplay();
+    }
+
+    // Cập nhật giỏ hàng
+    async function addToCart(productId, name, price, quantity, image) {
+      if (!currentUserId) return;
+      const q = query(
+        collection(db, "cart"),
+        where("userId", "==", currentUserId),
+        where("productId", "==", productId)
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const docRef = querySnapshot.docs[0].ref;
+        const data = querySnapshot.docs[0].data();
+        await updateDoc(docRef, {
+          quantity: data.quantity + quantity
+        });
+      } else {
+        await addDoc(collection(db, "cart"), {
+          userId: currentUserId,
+          productId,
+          name,
+          price,
+          quantity,
+          image
+        });
+      }
+      await loadCartFromFirestore();
+    }
+
+    async function removeFromCart(docId) {
+      await deleteDoc(doc(db, "cart", docId));
+      await loadCartFromFirestore();
+    }
+
+    async function changeQuantity(docId, change) {
+      const docRef = doc(db, "cart", docId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const current = docSnap.data().quantity + change;
+        if (current <= 0) {
+          await removeFromCart(docId);
+        } else {
+          await updateDoc(docRef, { quantity: current });
+          await loadCartFromFirestore();
+        }
+      }
+    }
+
+    function updateCartDisplay() {
+      cartContainer.innerHTML = "";
+      let totalItems = 0;
+      let totalPrice = 0;
+
+      cartItems.forEach(item => {
+        totalItems += item.quantity;
+        totalPrice += item.quantity * item.price;
+
+        const itemElement = document.createElement("div");
+        itemElement.className = "cart-item";
+        itemElement.innerHTML = `
+          <img src="${item.image}" alt="${item.name}" class="cart-item-image">
+          <div class="cart-item-details">
+            <h4>${item.name}</h4>
+            <p>${item.quantity} x ${formatCurrency(item.price)}</p>
+          </div>
+          <div class="cart-item-actions">
+            <button onclick="changeQuantity('${item.id}', -1)" class="btn-quantity">-</button>
+            <span>${item.quantity}</span>
+            <button onclick="changeQuantity('${item.id}', 1)" class="btn-quantity">+</button>
+            <button onclick="removeFromCart('${item.id}')" class="btn-remove">×</button>
+          </div>
+        `;
+        cartContainer.appendChild(itemElement);
+      });
+
+      cartCounter.textContent = totalItems;
+      cartTotal.textContent = formatCurrency(totalPrice);
+
+      if (cartItems.length === 0) {
+        cartContainer.innerHTML = '<p class="empty-cart">Giỏ hàng của bạn đang trống</p>';
+      }
+    }
+
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND"
+      }).format(amount);
+    }
+
+    window.removeFromCart = removeFromCart;
+    window.changeQuantity = changeQuantity;
+
+    // Gắn sự kiện click vào nút "Thêm vào giỏ hàng"
+    document.addEventListener("DOMContentLoaded", () => {
+      const buttons = document.querySelectorAll(".add-to-cart-btn");
+      buttons.forEach(button => {
+        button.addEventListener("click", () => {
+          const productCard = button.closest(".product-card");
+          const productId = parseInt(productCard.dataset.productId);
+          const name = productCard.querySelector(".product-name").textContent;
+          const price = parseInt(productCard.dataset.price);
+          const image = productCard.querySelector(".product-image").src;
+
+          addToCart(productId, name, price, 1, image);
+        });
+      });
+
+      // Toggle giỏ hàng
+      const cartIcon = document.getElementById("cart-icon");
+      const cartDropdown = document.getElementById("cart-dropdown");
+      cartIcon.addEventListener("click", (e) => {
+        e.stopPropagation();
+        cartDropdown.classList.toggle("show");
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!cartDropdown.contains(e.target)) {
+          cartDropdown.classList.remove("show");
+        }
+      });
+
+      // Xác thực người dùng
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          currentUserId = user.uid;
+          loadCartFromFirestore();
+        } else {
+          alert("Bạn cần đăng nhập để sử dụng giỏ hàng");
+          // Redirect hoặc xử lý đăng nhập ở đây
+        }
+      });
+    });
+  </script>
 </head>
 <body>
-
-  <!-- Header -->
-  <header>
-    <div class="logo">QT Store</div>
-    <nav>
-      <ul>
-        <li><a href="index.html">Trang chủ</a></li>
-        <li><a href="products.html">Sản phẩm</a></li>
-        <li><a href="cart.html">Giỏ hàng (<span id="cart-count">0</span>)</a></li>
-        <li><a href="contact.html">Liên hệ</a></li>
-      </ul>
-    </nav>
-    <div class="user-info" id="user-info" style="display: none;">
-      Xin chào, <span id="username">Người dùng</span>!
-      <button id="logoutBtn">Đăng xuất</button>
-    </div>
-  </header>
-
-  <!-- Giỏ hàng -->
-  <section class="cart-section">
-    <h2>Giỏ hàng của bạn</h2>
-    <div id="cart-items"></div>
-  </section>
-
-  <script type="module" src="assets/js/cart.js"></script>
+  <!-- HTML phần header + sản phẩm + giỏ hàng dropdown tương tự bạn đã viết -->
 </body>
 </html>
