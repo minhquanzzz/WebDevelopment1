@@ -1,4 +1,4 @@
-// assets/js/admin.js
+// admin.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
 import {
   getAuth,
@@ -9,158 +9,121 @@ import {
   getFirestore,
   collection,
   getDocs,
+  doc,
+  getDoc,
   addDoc,
   deleteDoc,
-  doc,
-  updateDoc,
-  getDoc
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.9.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC3zAz7lnoms99w8o1z74iQpXQvq7xakgc",
   authDomain: "web-development-d110c.firebaseapp.com",
   projectId: "web-development-d110c",
+  storageBucket: "web-development-d110c.appspot.com",
+  messagingSenderId: "646917777821",
+  appId: "1:646917777821:web:4231def15898fc89ac6774"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
-const logoutBtn = document.getElementById("logout-btn");
-const userList = document.getElementById("user-list-ul");
-const productList = document.getElementById("product-list-ul");
-
-const productNameInput = document.getElementById("product-name");
-const productPriceInput = document.getElementById("product-price");
-const productImageInput = document.getElementById("product-image");
-const addProductBtn = document.getElementById("add-product-btn");
-
-const editModal = document.getElementById("edit-modal");
-const editId = document.getElementById("edit-id");
-const editName = document.getElementById("edit-name");
-const editPrice = document.getElementById("edit-price");
-const saveEdit = document.getElementById("save-edit");
-const closeEdit = document.getElementById("close-edit");
-
-// 1. Kiểm tra quyền admin
+// Kiểm tra quyền admin khi truy cập trang
 onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    const docRef = doc(db, "users", user.uid);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists() || docSnap.data().role !== "admin") {
-      alert("Bạn không có quyền truy cập!");
-      window.location.href = "index.html";
-    } else {
-      loadUsers();
-      loadProducts();
-    }
-  } else {
+  if (!user) {
     window.location.href = "login.html";
+    return;
+  }
+
+  const userDoc = await getDoc(doc(db, "users", user.uid));
+  if (!userDoc.exists() || userDoc.data().role !== "admin") {
+    alert("Bạn không có quyền truy cập.");
+    window.location.href = "index.html";
+  } else {
+    loadUsers();
+    loadProducts();
   }
 });
 
-// 2. Đăng xuất
-logoutBtn.addEventListener("click", () => {
-  signOut(auth).then(() => {
-    window.location.href = "login.html";
-  });
+// Đăng xuất
+document.getElementById("logout-btn").addEventListener("click", async () => {
+  await signOut(auth);
+  window.location.href = "login.html";
 });
 
-// 3. Quản lý người dùng
+// 🧍‍♂️ Hiển thị danh sách người dùng
 async function loadUsers() {
-  const querySnapshot = await getDocs(collection(db, "users"));
+  const userList = document.getElementById("user-list-ul");
   userList.innerHTML = "";
-  querySnapshot.forEach((doc) => {
+
+  const usersSnap = await getDocs(collection(db, "users"));
+  usersSnap.forEach((doc) => {
+    const user = doc.data();
     const li = document.createElement("li");
-    li.textContent = `${doc.data().email} - Role: ${doc.data().role}`;
+    li.textContent = `${user.email} (${user.role || "user"})`;
     userList.appendChild(li);
   });
 }
 
-// 4. Thêm sản phẩm
-addProductBtn.addEventListener("click", async () => {
-  const name = productNameInput.value;
-  const price = parseFloat(productPriceInput.value);
-  const image = productImageInput.files[0]?.name || "default.jpg";
+// ➕ Thêm sản phẩm
+document.getElementById("add-product-btn").addEventListener("click", async () => {
+  const name = document.getElementById("product-name").value;
+  const price = document.getElementById("product-price").value;
+  const imageFile = document.getElementById("product-image").files[0];
 
-  if (!name || isNaN(price)) {
-    alert("Vui lòng nhập đầy đủ tên và giá sản phẩm.");
+  if (!name || !price || !imageFile) {
+    alert("Vui lòng điền đầy đủ thông tin.");
     return;
   }
+
+  const imageRef = ref(storage, `products/${Date.now()}_${imageFile.name}`);
+  await uploadBytes(imageRef, imageFile);
+  const imageUrl = await getDownloadURL(imageRef);
 
   await addDoc(collection(db, "products"), {
     name,
     price,
-    image
+    imageUrl
   });
 
-  productNameInput.value = "";
-  productPriceInput.value = "";
-  productImageInput.value = "";
+  document.getElementById("product-name").value = "";
+  document.getElementById("product-price").value = "";
+  document.getElementById("product-image").value = "";
 
-  alert("Đã thêm sản phẩm!");
   loadProducts();
 });
 
-// 5. Hiển thị sản phẩm
+// 📋 Hiển thị danh sách sản phẩm
 async function loadProducts() {
-  const querySnapshot = await getDocs(collection(db, "products"));
+  const productList = document.getElementById("product-list-ul");
   productList.innerHTML = "";
 
-  querySnapshot.forEach((docSnap) => {
+  const productsSnap = await getDocs(collection(db, "products"));
+  productsSnap.forEach((docSnap) => {
+    const product = docSnap.data();
     const li = document.createElement("li");
     li.innerHTML = `
-      <b>${docSnap.data().name}</b> - ${docSnap.data().price}₫
-      <button data-id="${docSnap.id}" class="edit-btn">Edit</button>
-      <button data-id="${docSnap.id}" class="delete-btn">Delete</button>
+      <strong>${product.name}</strong> - ${product.price}đ
+      <img src="${product.imageUrl}" width="50" />
+      <button data-id="${docSnap.id}" class="delete-btn">Xóa</button>
     `;
     productList.appendChild(li);
   });
 
+  // Xử lý nút xóa
   document.querySelectorAll(".delete-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.id;
       await deleteDoc(doc(db, "products", id));
-      alert("Đã xóa sản phẩm!");
       loadProducts();
     });
   });
-
-  document.querySelectorAll(".edit-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const id = btn.dataset.id;
-      editId.value = id;
-      const li = btn.parentElement;
-      const name = li.querySelector("b").textContent;
-      const price = li.textContent.match(/- ([\d.,]+)/)[1];
-      editName.value = name;
-      editPrice.value = price.replace(/₫/g, "");
-      editModal.style.display = "block";
-    });
-  });
 }
-
-// 6. Sửa sản phẩm
-saveEdit.addEventListener("click", async () => {
-  const id = editId.value;
-  const name = editName.value;
-  const price = parseFloat(editPrice.value);
-
-  if (!name || isNaN(price)) {
-    alert("Vui lòng nhập đúng tên và giá.");
-    return;
-  }
-
-  await updateDoc(doc(db, "products", id), {
-    name,
-    price
-  });
-
-  alert("Đã cập nhật sản phẩm!");
-  editModal.style.display = "none";
-  loadProducts();
-});
-
-closeEdit.addEventListener("click", () => {
-  editModal.style.display = "none";
-});
