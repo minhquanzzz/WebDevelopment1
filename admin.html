@@ -9,42 +9,42 @@
 </head>
 <body>
   <div class="container">
-    <h2>Admin</h2>
+    <h2>Admin Panel</h2>
     
     <!-- Nút đăng xuất -->
     <button id="logout-btn">Logout</button>
 
     <!-- Quản lý người dùng -->
     <div id="user-list">
-      <h3>Manage Users</h3>
+      <h3>Danh sách người dùng</h3>
       <ul id="user-list-ul"></ul>
     </div>
 
     <!-- Thêm sản phẩm -->
     <div id="add-product">
-      <h3>Add Product</h3>
-      <input type="text" id="product-name" placeholder="Product Name" />
-      <input type="text" id="product-price" placeholder="Product Price" />
+      <h3>Thêm sản phẩm</h3>
+      <input type="text" id="product-name" placeholder="Tên sản phẩm" />
+      <input type="text" id="product-price" placeholder="Giá sản phẩm" />
       <input type="file" id="product-image" accept="image/*" />
-      <button id="add-product-btn">Add Product</button>
+      <button id="add-product-btn">Thêm sản phẩm</button>
     </div>
 
-    <!-- Hiển thị danh sách sản phẩm -->
+    <!-- Danh sách sản phẩm -->
     <div id="product-list">
-      <h3>Product List</h3>
+      <h3>Danh sách sản phẩm</h3>
       <ul id="product-list-ul"></ul>
     </div>
   </div>
 
-  <!-- Modal chỉnh sửa sản phẩm -->
+  <!-- Modal chỉnh sửa -->
   <div id="edit-modal" class="modal">
     <div class="modal-content">
-      <h3>Edit Product</h3>
+      <h3>Chỉnh sửa sản phẩm</h3>
       <input type="hidden" id="edit-id" />
-      <input type="text" id="edit-name" placeholder="Product Name" />
-      <input type="text" id="edit-price" placeholder="Product Price" />
-      <button id="save-edit">Save</button>
-      <button id="close-edit">Cancel</button>
+      <input type="text" id="edit-name" placeholder="Tên sản phẩm" />
+      <input type="text" id="edit-price" placeholder="Giá sản phẩm" />
+      <button id="save-edit">Lưu</button>
+      <button id="close-edit">Hủy</button>
     </div>
   </div>
 
