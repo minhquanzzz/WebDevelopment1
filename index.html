@@ -147,6 +147,7 @@
 
         await addDoc(collection(db, "cart"), {
           userId: currentUser.uid,
+          userName: currentUser.displayName || currentUser.email, // 👈 thêm tên người dùng
           name,
           price,
           image
