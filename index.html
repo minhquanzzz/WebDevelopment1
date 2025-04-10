@@ -61,14 +61,14 @@
         <h3>SamSung Galaxy S24</h3>
         <p class="price">Giá: 27.999.000₫</p>
         <button class="buy-btn">Đặt hàng</button>
-        <button class="add-cart-btn" data-name="SamSung Galaxy S24" data-price="999000" data-image="images/ss s24.jpg">Thêm vào giỏ hàng</button>
+        <button class="add-cart-btn" data-name="SamSung Galaxy S24" data-price="27999000" data-image="images/ss s24.jpg">Thêm vào giỏ hàng</button>
       </div>
       <div class="product-card">
         <img src="images/ip14.jpg" alt="Sản phẩm 3">
         <h3>iPhone 14</h3>
         <p class="price">Giá: 11.000.000₫</p>
         <button class="buy-btn">Đặt hàng</button>
-        <button class="add-cart-btn" data-name="iPhone 14" data-price="555000" data-image="images/ip14.jpg">Thêm vào giỏ hàng</button>
+        <button class="add-cart-btn" data-name="iPhone 14" data-price="11000000" data-image="images/ip14.jpg">Thêm vào giỏ hàng</button>
       </div>
     </div>
   </section>
@@ -76,32 +76,43 @@
   <!-- Firebase script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
-
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      query,
+      where,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+  
     const firebaseConfig = {
-      apiKey : "AIzaSyC3zAz7lnoms99w8o1z74iQpXQvq7xakgc" , 
-      authDomain : "web-development-d110c.firebaseapp.com" , 
-      projectId : "web-development-d110c" ,  
+      apiKey: "AIzaSyC3zAz7lnoms99w8o1z74iQpXQvq7xakgc",
+      authDomain: "web-development-d110c.firebaseapp.com",
+      projectId: "web-development-d110c",
     };
-
+  
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-
+  
     const userInfoDiv = document.getElementById("user-info");
     const usernameSpan = document.getElementById("username");
     const logoutBtn = document.getElementById("logoutBtn");
     const cartCount = document.getElementById("cart-count");
-
+  
     let currentUser = null;
-
+  
     const updateCartCount = async (userId) => {
       const q = query(collection(db, "cart"), where("userId", "==", userId));
       const snapshot = await getDocs(q);
       cartCount.textContent = `(${snapshot.size})`;
     };
-
+  
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
@@ -109,19 +120,18 @@
         userInfoDiv.style.display = "flex";
         updateCartCount(user.uid);
       } else {
-        currentUser = null;
-        userInfoDiv.style.display = "none";
-        cartCount.textContent = "(0)";
+        // Chưa đăng nhập → chuyển về trang login
+        window.location.href = "login.html";
       }
     });
-
+  
     logoutBtn.addEventListener("click", () => {
       signOut(auth).then(() => {
-        window.location.href = "index.html";
+        window.location.href = "login.html";
       });
     });
-
-    // Xử lý thêm vào giỏ hàng
+  
+    // Thêm vào giỏ hàng
     document.querySelectorAll(".add-cart-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (!currentUser) {
@@ -132,20 +142,20 @@
         const name = btn.dataset.name;
         const price = parseInt(btn.dataset.price);
         const image = btn.dataset.image;
-
+  
         await addDoc(collection(db, "cart"), {
           userId: currentUser.uid,
           name,
           price,
           image
         });
-
+  
         alert("Đã thêm vào giỏ hàng!");
         updateCartCount(currentUser.uid);
       });
     });
-
-    // Xử lý đặt hàng
+  
+    // Đặt hàng
     document.querySelectorAll(".buy-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         if (!currentUser) {
@@ -156,6 +166,6 @@
         }
       });
     });
-  </script>
+  </script>  
 </body>
 </html>
