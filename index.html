@@ -16,7 +16,7 @@
     }
   </style>
 </head>
-<body>
+<body style="display: none;"> <!-- Ẩn trang lúc đầu -->
 
   <!-- Header -->
   <header>
@@ -121,11 +121,9 @@
         userInfoDiv.style.display = "flex";
         if (loginNav) loginNav.style.display = "none";
         updateCartCount(user.uid);
+        document.body.style.display = "block"; // 👉 Cho phép hiển thị trang
       } else {
-        currentUser = null;
-        userInfoDiv.style.display = "none";
-        cartCount.textContent = "(0)";
-        if (loginNav) loginNav.style.display = "inline-block";
+        window.location.href = "login.html"; // 👉 Chuyển hướng nếu chưa đăng nhập
       }
     });
 
