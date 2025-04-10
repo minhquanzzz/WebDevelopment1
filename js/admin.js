@@ -21,6 +21,7 @@ import {
   getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-storage.js";
 
+// Cấu hình Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyC3zAz7lnoms99w8o1z74iQpXQvq7xakgc",
   authDomain: "web-development-d110c.firebaseapp.com",
@@ -35,56 +36,82 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Kiểm tra đăng nhập và quyền admin
+// ✅ Kiểm tra đăng nhập và quyền admin
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
     return;
   }
 
-  const userDoc = await getDocs(collection(db, "users"));
-  const currentUser = Array.from(userDoc.docs).find(d => d.id === user.uid);
+  const querySnapshot = await getDocs(collection(db, "users"));
+  const currentUser = querySnapshot.docs.find(d => d.id === user.uid);
   if (!currentUser || currentUser.data().role !== "admin") {
     window.location.href = "index.html";
+    return;
   }
 
   loadUsers();
   loadProducts();
 });
 
-// Đăng xuất
-document.getElementById("logout-btn").addEventListener("click", () => {
-    signOut(auth).then(() => {
-      console.log("Signed out"); // kiểm tra logout
-      window.location.href = "login.html";
-    }).catch((error) => {
-      console.error("Error signing out:", error);
+// ✅ Đăng xuất
+document.addEventListener("DOMContentLoaded", () => {
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      signOut(auth)
+        .then(() => {
+          console.log("Đăng xuất thành công");
+          window.location.href = "login.html";
+        })
+        .catch((error) => {
+          console.error("Lỗi khi đăng xuất:", error);
+        });
     });
-  });
-  
+  }
+});
 
-// Load danh sách người dùng
+// ✅ Load người dùng
 async function loadUsers() {
-  const querySnapshot = await getDocs(collection(db, "users"));
-  const userList = document.getElementById("user-list-ul");
-  userList.innerHTML = "";
+  const snapshot = await getDocs(collection(db, "users"));
+  const list = document.getElementById("user-list-ul");
+  list.innerHTML = "";
 
-  querySnapshot.forEach((doc) => {
+  snapshot.forEach((doc) => {
     const data = doc.data();
     const li = document.createElement("li");
-    li.textContent = `Email: ${data.email} | Role: ${data.role || 'user'}`;
-    userList.appendChild(li);
+    li.textContent = `Email: ${data.email} | Vai trò: ${data.role || "user"}`;
+    list.appendChild(li);
   });
 }
 
-// Thêm sản phẩm
+// ✅ Load sản phẩm
+async function loadProducts() {
+  const snapshot = await getDocs(collection(db, "products"));
+  const list = document.getElementById("product-list-ul");
+  list.innerHTML = "";
+
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <img src="${data.image}" width="50" />
+      <strong>${data.name}</strong> - ${data.price}
+      <button onclick="editProduct('${docSnap.id}', '${data.name}', '${data.price}')">Sửa</button>
+      <button onclick="deleteProduct('${docSnap.id}')">Xoá</button>
+    `;
+    list.appendChild(li);
+  });
+}
+
+// ✅ Thêm sản phẩm
 document.getElementById("add-product-btn").addEventListener("click", async () => {
   const name = document.getElementById("product-name").value;
   const price = document.getElementById("product-price").value;
   const imageFile = document.getElementById("product-image").files[0];
 
   if (!name || !price || !imageFile) {
-    alert("Vui lòng nhập đầy đủ thông tin.");
+    alert("Vui lòng điền đầy đủ thông tin.");
     return;
   }
 
@@ -92,35 +119,11 @@ document.getElementById("add-product-btn").addEventListener("click", async () =>
   await uploadBytes(imageRef, imageFile);
   const imageUrl = await getDownloadURL(imageRef);
 
-  await addDoc(collection(db, "products"), {
-    name,
-    price,
-    image: imageUrl
-  });
-
+  await addDoc(collection(db, "products"), { name, price, image: imageUrl });
   loadProducts();
 });
 
-// Hiển thị sản phẩm
-async function loadProducts() {
-  const querySnapshot = await getDocs(collection(db, "products"));
-  const productList = document.getElementById("product-list-ul");
-  productList.innerHTML = "";
-
-  querySnapshot.forEach((docSnap) => {
-    const data = docSnap.data();
-    const li = document.createElement("li");
-    li.innerHTML = `
-      <img src="${data.image}" width="50" />
-      <strong>${data.name}</strong> - ${data.price}
-      <button onclick="editProduct('${docSnap.id}', '${data.name}', '${data.price}')">Edit</button>
-      <button onclick="deleteProduct('${docSnap.id}')">Delete</button>
-    `;
-    productList.appendChild(li);
-  });
-}
-
-// Sửa sản phẩm
+// ✅ Chỉnh sửa sản phẩm
 window.editProduct = (id, name, price) => {
   document.getElementById("edit-id").value = id;
   document.getElementById("edit-name").value = name;
@@ -142,9 +145,9 @@ document.getElementById("close-edit").addEventListener("click", () => {
   document.getElementById("edit-modal").style.display = "none";
 });
 
-// Xoá sản phẩm
+// ✅ Xoá sản phẩm
 window.deleteProduct = async (id) => {
-  if (confirm("Bạn có chắc muốn xoá sản phẩm này?")) {
+  if (confirm("Bạn có chắc chắn muốn xoá sản phẩm này?")) {
     await deleteDoc(doc(db, "products", id));
     loadProducts();
   }
