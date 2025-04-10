@@ -1,167 +1,122 @@
-// Firebase import
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  doc,
+  updateDoc
+} from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
-// Cấu hình Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyC3zAz7lnoms99w8o1z74iQpXQvq7xakgc",
   authDomain: "web-development-d110c.firebaseapp.com",
-  databaseURL: "https://web-development-d110c-default-rtdb.firebaseio.com",
   projectId: "web-development-d110c",
-  storageBucket: "web-development-d110c.appspot.com",
-  messagingSenderId: "646917777821",
-  appId: "1:646917777821:web:4231def15898fc89ac6774"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getDatabase(app);
+const db = getFirestore(app);
 
-// ==========================
-// Giỏ hàng xử lý bằng localStorage
-// ==========================
+const cartItemsDiv = document.getElementById("cartItems");
+const cartTotalSpan = document.getElementById("cartTotal");
+const usernameSpan = document.getElementById("username");
+const userInfoDiv = document.getElementById("user-info");
+const logoutBtn = document.getElementById("logoutBtn");
+const checkoutBtn = document.getElementById("checkoutBtn");
 
-function getCart() {
-  return JSON.parse(localStorage.getItem("cart")) || [];
-}
+let currentUserId = null;
 
-function saveCart(cart) {
-  localStorage.setItem("cart", JSON.stringify(cart));
-}
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUserId = user.uid;
+    usernameSpan.textContent = user.displayName || user.email;
+    userInfoDiv.style.display = "flex";
+    await displayCartItems();
+  } else {
+    window.location.href = "login.html";
+  }
+});
 
-function updateCartCount() {
-  const cart = getCart();
-  const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const countSpan = document.getElementById("cart-count");
-  if (countSpan) countSpan.textContent = count;
-}
+logoutBtn.addEventListener("click", () => {
+  signOut(auth).then(() => {
+    window.location.href = "login.html";
+  });
+});
 
-function formatCurrency(amount) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(amount);
-}
-
-// ==========================
-// Hiển thị giỏ hàng
-// ==========================
-function renderCart() {
-  const cart = getCart();
-  const cartItemsDiv = document.getElementById("cart-items");
+async function displayCartItems() {
   cartItemsDiv.innerHTML = "";
+  let total = 0;
 
-  if (cart.length === 0) {
-    cartItemsDiv.innerHTML = "<p>Giỏ hàng trống.</p>";
+  const q = query(collection(db, "cart"), where("userId", "==", currentUserId));
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) {
+    cartItemsDiv.innerHTML = "<p>Giỏ hàng của bạn đang trống.</p>";
+    cartTotalSpan.textContent = "0₫";
     return;
   }
 
-  cart.forEach(product => {
+  querySnapshot.forEach((docSnap) => {
+    const item = docSnap.data();
+    const quantity = item.quantity || 1;
+    const itemTotal = item.price * quantity;
+    total += itemTotal;
+
     const itemDiv = document.createElement("div");
     itemDiv.className = "cart-item";
     itemDiv.innerHTML = `
-      <img src="${product.image}" alt="${product.name}" width="80">
+      <img src="${item.image}" alt="${item.name}">
       <div class="item-info">
-        <h4>${product.name}</h4>
-        <p>Giá: ${formatCurrency(product.price)}</p>
-        <p>
-          Số lượng: 
-          <input type="number" value="${product.quantity}" min="1"
-            onchange="updateQuantity('${product.id}', this.value)">
-        </p>
-        <p>Thành tiền: ${formatCurrency(product.price * product.quantity)}</p>
-        <button onclick="removeFromCart('${product.id}')">Xóa</button>
+        <h3>${item.name}</h3>
+        <p>Giá: ${item.price.toLocaleString()}₫</p>
+        <label>Số lượng: 
+          <input type="number" min="1" value="${quantity}" data-id="${docSnap.id}" class="qty-input"/>
+        </label>
+        <button class="remove-btn" data-id="${docSnap.id}">Xoá</button>
       </div>
     `;
     cartItemsDiv.appendChild(itemDiv);
   });
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  const totalDiv = document.createElement("div");
-  totalDiv.className = "cart-total";
-  totalDiv.innerHTML = `
-    <h3>Tổng cộng: ${formatCurrency(total)}</h3>
-    <button id="checkout-btn">Thanh toán</button>
-  `;
-  cartItemsDiv.appendChild(totalDiv);
-
-  const checkoutBtn = document.getElementById("checkout-btn");
-  if (checkoutBtn) {
-    checkoutBtn.addEventListener("click", checkout);
-  }
+  cartTotalSpan.textContent = total.toLocaleString() + "₫";
+  addCartEvents();
 }
 
-// ==========================
-// Cập nhật - Xóa - Thanh toán
-// ==========================
+function addCartEvents() {
+  document.querySelectorAll(".remove-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      await deleteDoc(doc(db, "cart", id));
+      await displayCartItems();
+    });
+  });
 
-window.updateQuantity = function(productId, newQuantity) {
-  const cart = getCart();
-  for (let i = 0; i < cart.length; i++) {
-    if (cart[i].id === productId) {
-      cart[i].quantity = parseInt(newQuantity);
-      break;
-    }
-  }
-  saveCart(cart);
-  renderCart();
-  updateCartCount();
-};
-
-window.removeFromCart = function(productId) {
-  let cart = getCart();
-  cart = cart.filter(item => item.id !== productId);
-  saveCart(cart);
-  renderCart();
-  updateCartCount();
-};
-
-// ==========================
-// Thanh toán và lưu vào Firebase
-// ==========================
-
-function checkout() {
-  const cart = getCart();
-
-  if (cart.length === 0) {
-    alert("Giỏ hàng đang trống!");
-    return;
-  }
-
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      const order = {
-        uid: user.uid,
-        email: user.email,
-        items: cart,
-        total: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
-        createdAt: new Date().toISOString()
-      };
-
-      const ordersRef = ref(db, "orders");
-      push(ordersRef, order)
-        .then(() => {
-          localStorage.removeItem("cart");
-          alert("Thanh toán thành công! Đơn hàng đã được lưu.");
-          renderCart();
-          updateCartCount();
-        })
-        .catch((error) => {
-          console.error("Lỗi khi lưu đơn hàng:", error);
-          alert("Có lỗi xảy ra khi lưu đơn hàng.");
-        });
-    } else {
-      alert("Bạn cần đăng nhập để thanh toán.");
-    }
+  document.querySelectorAll(".qty-input").forEach((input) => {
+    input.addEventListener("change", async () => {
+      const newQty = parseInt(input.value);
+      const id = input.dataset.id;
+      await updateDoc(doc(db, "cart", id), { quantity: newQty });
+      await displayCartItems();
+    });
   });
 }
 
-// ==========================
-// Khi trang được tải
-// ==========================
-window.addEventListener("DOMContentLoaded", () => {
-  renderCart();
-  updateCartCount();
+checkoutBtn.addEventListener("click", async () => {
+  alert("Thanh toán thành công! Cảm ơn bạn đã mua hàng.");
+  const q = query(collection(db, "cart"), where("userId", "==", currentUserId));
+  const querySnapshot = await getDocs(q);
+
+  for (const docSnap of querySnapshot.docs) {
+    await deleteDoc(doc(db, "cart", docSnap.id));
+  }
+
+  await displayCartItems();
 });
