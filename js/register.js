@@ -1,51 +1,53 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 
-// Cấu hình Firebase (sửa lại storageBucket cho đúng)
+// Cấu hình Firebase của bạn
 const firebaseConfig = {
   apiKey: "AIzaSyC3zAz7lnoms99w8o1z74iQpXQvq7xakgc",
   authDomain: "web-development-d110c.firebaseapp.com",
   projectId: "web-development-d110c",
-  storageBucket: "web-development-d110c.appspot.com", // ✅ đã sửa
+  storageBucket: "web-development-d110c.appspot.com", // ← sửa lại `.app` thành `.appspot.com`
   messagingSenderId: "646917777821",
-  appId: "1:646917777821:web:4231def15898fc89ac6774",
+  appId: "1:646917777821:web:4231def15898fc89ac6774"
 };
 
 // Khởi tạo Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
 
-// DOM
-const registerForm = document.getElementById('register-form');
-const emailInput = document.getElementById('register-email');
-const passwordInput = document.getElementById('register-password');
-const message = document.getElementById('register-message');
+// DOM elements
+const registerForm = document.getElementById("register-form");
+const emailInput = document.getElementById("register-email");
+const passwordInput = document.getElementById("register-password");
+const message = document.getElementById("register-message");
 
-// Đăng ký tài khoản
-registerForm.addEventListener('submit', async (e) => {
+// Sự kiện đăng ký
+registerForm.addEventListener("submit", (e) => {
   e.preventDefault();
 
   const email = emailInput.value;
   const password = passwordInput.value;
 
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+  createUserWithEmailAndPassword(auth, email, password)
+    .then((userCredential) => {
+      // Tự động đăng nhập thành công
+      message.textContent = "Đăng ký thành công! Đang chuyển hướng...";
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 1000);
+    })
+    .catch((error) => {
+      const errorCode = error.code;
+      const errorMessage = error.message;
 
-    // ✅ Lưu thông tin người dùng vào Firestore
-    await setDoc(doc(db, "users", user.uid), {
-      email: user.email,
-      uid: user.uid,
-      createdAt: new Date().toISOString()
+      if (errorCode === "auth/email-already-in-use") {
+        message.textContent = "Email đã tồn tại. Vui lòng đăng nhập.";
+      } else {
+        message.textContent = `Lỗi: ${errorMessage}`;
+      }
     });
-
-    message.textContent = "Đăng ký thành công! Đang đăng nhập...";
-    setTimeout(() => {
-      window.location.href = "index.html";
-    }, 1000);
-  } catch (error) {
-    message.textContent = `Lỗi: ${error.message}`;
-  }
 });
