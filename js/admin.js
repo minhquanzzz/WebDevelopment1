@@ -54,10 +54,14 @@ onAuthStateChanged(auth, async (user) => {
 
 // Đăng xuất
 document.getElementById("logout-btn").addEventListener("click", () => {
-  signOut(auth).then(() => {
-    window.location.href = "login.html";
+    signOut(auth).then(() => {
+      console.log("Signed out"); // kiểm tra logout
+      window.location.href = "login.html";
+    }).catch((error) => {
+      console.error("Error signing out:", error);
+    });
   });
-});
+  
 
 // Load danh sách người dùng
 async function loadUsers() {
